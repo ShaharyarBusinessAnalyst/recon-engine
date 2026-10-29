@@ -7,6 +7,7 @@ import pandas as pd
 
 from data_gen.contracts import make_contracts, make_prices_and_amendments, make_tier_bands
 from data_gen.hospitals import make_customers, make_hospitals, make_memberships, make_rosters
+from data_gen.membership import make_affiliations, make_tier_assignments
 from data_gen.reference import (
     make_distributor,
     make_gpo,
@@ -36,6 +37,10 @@ def main() -> None:
     roster_files, rosters, roster_labels = make_rosters(
         rng, hospitals, memberships, gpo_ids, settings
     )
+    affiliations, primary_gpo_truth = make_affiliations(rng, memberships, customer_labels)
+    tier_assignments, short_notice = make_tier_assignments(
+        rng, memberships, contracts, customer_labels, settings
+    )
 
     tables = {
         "gpo": gpo,
@@ -53,6 +58,10 @@ def main() -> None:
         "labels/truth_membership": pd.DataFrame([asdict(m) for m in memberships]),
         "labels/truth_customer_hospital": customer_labels,
         "labels/truth_roster_hospital": roster_labels,
+        "primary_gpo_affiliation": affiliations,
+        "tier_assignment": tier_assignments,
+        "labels/truth_primary_gpo": primary_gpo_truth,
+        "labels/planted_short_notice": short_notice,
     }
     for name, df in tables.items():
         write_table(df, name, settings)
