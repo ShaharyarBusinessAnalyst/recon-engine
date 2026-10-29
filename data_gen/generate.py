@@ -1,8 +1,12 @@
 """Run the whole generator: python -m data_gen.generate"""
 
 import random
+from dataclasses import asdict
+
+import pandas as pd
 
 from data_gen.contracts import make_contracts, make_prices_and_amendments, make_tier_bands
+from data_gen.hospitals import make_customers, make_hospitals, make_memberships, make_rosters
 from data_gen.reference import (
     make_distributor,
     make_gpo,
@@ -25,6 +29,14 @@ def main() -> None:
     tier_bands = make_tier_bands(contracts)
     prices, amendments = make_prices_and_amendments(rng, contracts, products, product_wac, settings)
 
+    gpo_ids = [str(g) for g in gpo["gpo_id"]]
+    hospitals = make_hospitals(rng, settings)
+    memberships = make_memberships(rng, hospitals, gpo_ids, settings)
+    customers, customer_labels = make_customers(rng, hospitals)
+    roster_files, rosters, roster_labels = make_rosters(
+        rng, hospitals, memberships, gpo_ids, settings
+    )
+
     tables = {
         "gpo": gpo,
         "distributor": distributor,
@@ -34,6 +46,13 @@ def main() -> None:
         "contract_tier_band": tier_bands,
         "contract_price": prices,
         "contract_amendment": amendments,
+        "customer": customers,
+        "roster_file": roster_files,
+        "gpo_roster": rosters,
+        "labels/truth_hospital": pd.DataFrame([asdict(h) for h in hospitals]),
+        "labels/truth_membership": pd.DataFrame([asdict(m) for m in memberships]),
+        "labels/truth_customer_hospital": customer_labels,
+        "labels/truth_roster_hospital": roster_labels,
     }
     for name, df in tables.items():
         write_table(df, name, settings)

@@ -149,8 +149,8 @@ def make_product_wac(
 
 
 def write_table(df: pd.DataFrame, name: str, settings: GenSettings) -> None:
-    settings.output_dir.mkdir(parents=True, exist_ok=True)
     path = settings.output_dir / f"{name}.csv"
+    path.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(path, index=False)
     print(f"wrote {len(df):>6} rows -> {path}")
 
