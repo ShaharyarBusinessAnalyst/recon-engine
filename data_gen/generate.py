@@ -15,11 +15,11 @@ from data_gen.reference import (
     make_product_wac,
     write_table,
 )
+from data_gen.sales import make_sales
 from data_gen.settings import GenSettings
 
 
-def main() -> None:
-    settings = GenSettings()
+def build_tables(settings: GenSettings) -> dict[str, pd.DataFrame]:
     rng = random.Random(settings.seed)
 
     gpo = make_gpo()
@@ -42,6 +42,21 @@ def main() -> None:
         rng, memberships, contracts, customer_labels, settings
     )
 
+    distributor_ids = [str(d) for d in distributor["distributor_id"]]
+    sales_tables = make_sales(
+        rng,
+        settings,
+        hospitals,
+        customer_labels,
+        products,
+        product_wac,
+        contracts,
+        prices,
+        tier_assignments,
+        primary_gpo_truth,
+        distributor_ids,
+    )
+
     tables = {
         "gpo": gpo,
         "distributor": distributor,
@@ -54,16 +69,22 @@ def main() -> None:
         "customer": customers,
         "roster_file": roster_files,
         "gpo_roster": rosters,
+        "primary_gpo_affiliation": affiliations,
+        "tier_assignment": tier_assignments,
         "labels/truth_hospital": pd.DataFrame([asdict(h) for h in hospitals]),
         "labels/truth_membership": pd.DataFrame([asdict(m) for m in memberships]),
         "labels/truth_customer_hospital": customer_labels,
         "labels/truth_roster_hospital": roster_labels,
-        "primary_gpo_affiliation": affiliations,
-        "tier_assignment": tier_assignments,
         "labels/truth_primary_gpo": primary_gpo_truth,
         "labels/planted_short_notice": short_notice,
     }
-    for name, df in tables.items():
+    tables.update(sales_tables)
+    return tables
+
+
+def main() -> None:
+    settings = GenSettings()
+    for name, df in build_tables(settings).items():
         write_table(df, name, settings)
 
 
